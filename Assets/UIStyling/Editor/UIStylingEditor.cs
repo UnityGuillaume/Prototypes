@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEditor;
-
+/*
 public class UIStylingEditor : EditorWindow
 {
     [MenuItem("UI/Styling Editor")]
@@ -192,4 +192,4 @@ public class UIStylingEditor : EditorWindow
     }
 
 
-}
+}*/
