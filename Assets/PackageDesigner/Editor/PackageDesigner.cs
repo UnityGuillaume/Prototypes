@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
+using Microsoft.CSharp;
+using System.CodeDom.Compiler;
+using System.Text;
 
 public class PackageDesigner : EditorWindow
 {
@@ -188,6 +191,20 @@ public class PackageDesigner : EditorWindow
         m_DepTreeView.assetPackage = m_CurrentlyEdited;
         m_DepTreeView.Reload();
         m_DepTreeView.ExpandAll();
+
+        string[] files = new string[0];
+        for(int i = 0; i < m_CurrentlyEdited.dependencies.Length; ++i)
+        {
+            if(AssetDatabase.GetMainAssetTypeAtPath(m_CurrentlyEdited.dependencies[i]) == typeof(MonoScript))
+            {
+                ArrayUtility.Add(ref files, m_CurrentlyEdited.dependencies[i].Replace("Assets", Application.dataPath));
+            }
+        }
+
+        if(files.Length != 0)
+        {
+            CheckCanCompile(files);
+        }
     }
 
     void GetAllPackageList()
@@ -198,6 +215,40 @@ public class PackageDesigner : EditorWindow
         for(int i = 0; i < assets.Length; ++i)
         {
             m_AssetPackageList[i] = AssetDatabase.LoadAssetAtPath<AssetPackage>(AssetDatabase.GUIDToAssetPath(assets[i]));
+        }
+    }
+
+    void CheckCanCompile(string[] files)
+    {
+        CSharpCodeProvider provider = new CSharpCodeProvider();
+        CompilerParameters parameters = new CompilerParameters();
+
+        foreach (var assembly in System.AppDomain.CurrentDomain.GetAssemblies())
+        {
+            if (assembly.Location.Contains("Library"))
+                continue;//we don't add the library specific to the project, as we want to test compilign for any project
+            parameters.ReferencedAssemblies.Add(assembly.Location);
+        }
+
+        parameters.GenerateInMemory = true;
+        parameters.GenerateExecutable = false;
+
+        CompilerResults results = provider.CompileAssemblyFromFile(parameters, files);
+
+        if (results.Errors.HasErrors)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            foreach (CompilerError error in results.Errors)
+            {
+                sb.AppendLine(string.Format("Error in {0} : {1}", error.FileName, error.ErrorText));
+            }
+
+            Debug.Log(sb);
+        }
+        else
+        {
+            Debug.Log("succesful compiled");
         }
     }
 }
